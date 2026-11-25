@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Short Video Studio</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --text:#1d2433; --muted:#6b7280; --accent:#2563eb; --bad:#b91c1c; --ok:#15803d; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg:#0f1420; --card:#171e2e; --text:#e6e9f2; --muted:#9aa3b5; --accent:#60a5fa; --bad:#f87171; --ok:#4ade80; }
+  }
+  :root[data-theme="dark"] { --bg:#0f1420; --card:#171e2e; --text:#e6e9f2; --muted:#9aa3b5; --accent:#60a5fa; --bad:#f87171; --ok:#4ade80; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 16px; display:grid; gap:16px; grid-template-columns: 1fr; }
+  @media (min-width: 800px) { main { grid-template-columns: 1fr 1fr; } }
+  section { background:var(--card); border-radius:12px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  h1 { font-size:20px; margin:8px 16px 0; }
+  h2 { font-size:16px; margin:0 0 12px; }
+  label { display:block; font-size:13px; color:var(--muted); margin:10px 0 4px; }
+  input, select, textarea { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid #d0d5dd; border-radius:8px; font:inherit; background:transparent; color:var(--text); }
+  textarea { min-height:70px; }
+  button { margin-top:12px; padding:9px 14px; border:0; border-radius:8px; background:var(--accent); color:#fff; font:inherit; cursor:pointer; }
+  button.secondary { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  button:disabled { opacity:.5; cursor:wait; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; }
+  .row > * { flex:1; }
+  .muted { color:var(--muted); font-size:13px; }
+  .beat { border:1px dashed #d0d5dd; border-radius:8px; padding:8px; margin-top:8px; }
+  .flag { color:var(--bad); font-size:13px; }
+  .check-ok { color:var(--ok); } .check-bad { color:var(--bad); }
+  video { width:100%; max-width:320px; border-radius:10px; background:#000; display:block; margin-top:8px; }
+  pre { white-space:pre-wrap; background:rgba(127,127,127,.12); padding:10px; border-radius:8px; font-size:13px; }
+  #msg { margin:0 16px; color:var(--muted); min-height:20px; }
+</style>
+</head>
+<body>
+<h1>Short Video Studio</h1>
+<div id="msg"></div>
+<main>
+  <section>
+    <h2>1. Product</h2>
+    <label>Product or topic name</label>
+    <input id="name" placeholder="e.g. Bamboo phone stand">
+    <label>Description (features, benefits, one per sentence)</label>
+    <textarea id="desc" placeholder="Foldable, fits all phones. Lightweight and sturdy. Great for video calls."></textarea>
+    <div class="row">
+      <div><label>Language</label>
+        <select id="lang"><option value="vi">Vietnamese</option><option value="en">English</option></select></div>
+      <div><label>Length (seconds)</label><input id="secs" type="number" value="20" min="5" max="60"></div>
+    </div>
+    <label>Tone</label>
+    <input id="tone" value="friendly">
+    <label><input id="voice" type="checkbox" checked style="width:auto"> Add voiceover (needs internet)</label>
+    <label>Product photo (optional, JPEG/PNG/WebP)</label>
+    <input id="img" type="file" accept="image/*">
+    <button id="create">Create project</button>
+    <p class="muted" id="pid"></p>
+  </section>
+
+  <section>
+    <h2>2. Brief (review before rendering)</h2>
+    <div class="row">
+      <button id="gen" class="secondary" disabled>Generate brief</button>
+      <button id="save" class="secondary" disabled>Save edits</button>
+    </div>
+    <p class="muted" id="src"></p>
+    <div id="flags" class="flag"></div>
+    <div id="brief"></div>
+  </section>
+
+  <section>
+    <h2>3. Render and check</h2>
+    <button id="render" disabled>Render video</button>
+    <div id="qa"></div>
+    <video id="player" controls playsinline></video>
+    <a id="dl" class="muted" href="#" hidden>Download MP4</a>
+  </section>
+
+  <section>
+    <h2>4. Post text (copy and post yourself)</h2>
+    <button id="post" class="secondary" disabled>Generate caption</button>
+    <pre id="posttext"></pre>
+  </section>
+</main>
+
+<script>
+let pid = null, brief = null;
+const $ = id => document.getElementById(id);
+const msg = t => $('msg').textContent = t;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, opts);
+  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.detail || r.statusText); }
+  return r.json();
+}
+
+function setEnabled(on) { ['gen','save','render','post'].forEach(i => $(i).disabled = !on); }
+
+function renderBrief() {
+  if (!brief) { $('brief').innerHTML = ''; return; }
+  $('src').textContent = 'Source: ' + (window.briefSource || '');
+  $('flags').textContent = (brief.claims_flags || []).length ? 'Risky claims found: ' + brief.claims_flags.join(', ') + '. Edit before posting.' : '';
+  $('brief').innerHTML = `
+    <label>Hook</label><input id="hook" value="${esc(brief.hook)}">
+    <div id="beats"></div>
+    <label>Call to action</label><input id="cta" value="${esc(brief.cta)}">
+    <label>Caption</label><textarea id="caption">${esc(brief.caption)}</textarea>
+    <label>Hashtags (space separated)</label><input id="tags" value="${esc((brief.hashtags||[]).join(' '))}">
+    <div class="row"><div><label>Background (hex)</label><input id="bg" value="${esc(brief.background)}"></div>
+    <div><label>Accent (hex)</label><input id="accent" value="${esc(brief.accent)}"></div></div>
+    <label><input id="ai" type="checkbox" ${brief.ai_disclosure ? 'checked' : ''} style="width:auto"> Add AI-assistance disclosure</label>`;
+  $('beats').innerHTML = brief.beats.map((b, i) => `
+    <div class="beat"><label>Beat ${i+1}: on-screen text</label><input class="on" value="${esc(b.on_screen)}">
+    <label>Voiceover</label><input class="vo" value="${esc(b.voiceover)}"></div>`).join('');
+}
+
+function readBrief() {
+  const beats = [...document.querySelectorAll('.beat')].map(el => ({
+    on_screen: el.querySelector('.on').value.trim(), voiceover: el.querySelector('.vo').value.trim() }));
+  return {
+    hook: $('hook').value.trim(), beats, cta: $('cta').value.trim(), caption: $('caption').value.trim(),
+    hashtags: $('tags').value.split(/\s+/).filter(Boolean), background: $('bg').value.trim(),
+    accent: $('accent').value.trim(), ai_disclosure: $('ai').checked, claims_flags: [],
+  };
+}
+
+async function setBrief(p) {
+  brief = p.brief; window.briefSource = { llm: 'AI model', template: 'template (no AI key set)', user: 'your edits' }[p.brief_source] || '';
+  renderBrief();
+}
+
+$('create').onclick = async () => {
+  try {
+    const body = {
+      product_name: $('name').value.trim(), description: $('desc').value.trim(), language: $('lang').value,
+      target_seconds: +$('secs').value, tone: $('tone').value.trim() || 'friendly', use_voice: $('voice').checked,
+    };
+    const p = await api('/api/projects', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    pid = p.id; $('pid').textContent = 'Project ' + pid; setEnabled(true);
+    const f = $('img').files[0];
+    if (f) { const fd = new FormData(); fd.append('file', f); await api(`/api/projects/${pid}/image`, { method:'POST', body: fd }); }
+    msg('Project created. Generate a brief next.');
+  } catch (e) { msg('Error: ' + e.message); }
+};
+
+$('gen').onclick = async () => {
+  try { msg('Writing brief...'); const p = await api(`/api/projects/${pid}/brief`, { method:'POST' }); await setBrief(p); msg('Brief ready. Review and edit it, then render.'); }
+  catch (e) { msg('Error: ' + e.message); }
+};
+
+$('save').onclick = async () => {
+  try { const p = await api(`/api/projects/${pid}/brief`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(readBrief()) }); await setBrief(p); msg('Brief saved.'); }
+  catch (e) { msg('Error: ' + e.message); }
+};
+
+$('render').onclick = async () => {
+  try {
+    msg('Rendering video (this can take a minute)...'); $('render').disabled = true;
+    const p = await api(`/api/projects/${pid}/render`, { method:'POST' });
+    $('qa').innerHTML = (p.qa || []).map(c => `<div class="${c.ok ? 'check-ok' : 'check-bad'}">${c.ok ? 'PASS' : 'FAIL'}: ${esc(c.name)}</div>`).join('');
+    const url = `/api/projects/${pid}/video?t=${Date.now()}`;
+    $('player').src = url; $('dl').href = url; $('dl').hidden = false;
+    msg('Video rendered. Check the QA results, then copy the post text.');
+  } catch (e) { msg('Error: ' + e.message); }
+  finally { $('render').disabled = false; }
+};
+
+$('post').onclick = async () => {
+  try { const r = await api(`/api/projects/${pid}/post-text`); $('posttext').textContent = r.text + (r.claims_flags.length ? '\n\nRisky claims: ' + r.claims_flags.join(', ') : ''); }
+  catch (e) { msg('Error: ' + e.message); }
+};
+</script>
+</body>
+</html>
