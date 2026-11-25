@@ -62,10 +62,10 @@ def make_card(text: str, product: str, brief: Brief, out: Path, image: Path | No
         draw.line([(0, y), (W, y)], fill=col)
 
     if image is not None:
-        photo = Image.open(image).convert("RGB")
+        photo = Image.open(image).convert("RGBA")
         photo.thumbnail((W - 160, 900))
         x = (W - photo.width) // 2
-        img.paste(photo, (x, 200))
+        img.paste(photo, (x, 200), photo)  # alpha mask keeps transparent PNG backgrounds
         text_y = 1180
     else:
         text_y = 760
