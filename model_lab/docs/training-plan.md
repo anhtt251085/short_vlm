@@ -37,6 +37,7 @@ Sources: [VieNeu-TTS listing](https://aitoolradar.io/open-source/vieneu-tts), [F
 
 - **Data:** 100 to 300 short clips (2 to 5 seconds, 9:16) of our presenter, rendered from the 3D character rig, in each pose and with each prop. Captions describe the action and always include the trigger phrase ("mntr fox" for the launch character).
 - **Trainer:** musubi-tuner (kohya-ss). Its documentation recommends 24 GB or more of GPU memory for video training ([musubi-tuner](https://github.com/kohya-ss/musubi-tuner)). Wan 2.2 A14B trains separate high-noise and low-noise models.
+- **Step 0, available now:** an image dataset from the official Fox sheets: 24 figures (6 poses, 4 turnaround views, 6 expressions, 8 mouth shapes) on 5 backgrounds, 120 captioned images (`python -m modellab image-data`). It trains appearance only, and carries the small face drift in the concept sheets, so treat the result as a pipeline test. It stays research-only until OpenAI's terms are confirmed for training and commercial use.
 - **Pilot first:** Wan 2.1 1.3B, to prove the data and pipeline cheaply. Then Wan 2.2 A14B for quality.
 - **Gate:** in a 20-scene test set, the presenter must be recognisably the same in at least 90% of scenes (human review plus VLM checklist), with no distorted faces.
 

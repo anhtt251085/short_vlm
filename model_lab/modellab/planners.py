@@ -47,12 +47,23 @@ def plan_video(config_path: str | Path, registry: Registry, dataset_dir: str | P
         raise ValueError(f"{model.id} has no musubi-tuner task configured in the registry")
 
     dataset_dir = Path(dataset_dir).resolve()
+    # A dataset is either clips (videos/, from video-data) or stills (images/, from image-data).
     videos = sorted((dataset_dir / "videos").glob("*.mp4"))
-    if not videos:
-        raise ValueError(f"no clips in {dataset_dir / 'videos'}; run video-data first")
-    missing_captions = [v.name for v in videos if not v.with_suffix(".txt").exists()]
+    images = sorted((dataset_dir / "images").glob("*.png"))
+    if not videos and not images:
+        raise ValueError(f"no clips or images in {dataset_dir}; run video-data or image-data first")
+    items = videos or images
+    missing_captions = [v.name for v in items if not v.with_suffix(".txt").exists()]
     if missing_captions:
-        raise ValueError(f"clips without captions: {missing_captions[:5]}")
+        raise ValueError(f"items without captions: {missing_captions[:5]}")
+
+    warnings = []
+    summary_file = dataset_dir / "summary.json"
+    if summary_file.exists():
+        data_mode = json.loads(summary_file.read_text(encoding="utf-8")).get("mode")
+        if mode == "commercial" and data_mode != "commercial":
+            warnings.append(f"dataset was built in {data_mode} mode; its rights do not cover commercial use yet, "
+                            "so the trained LoRA is for testing only")
 
     run_dir = Path(out_root).resolve() / cfg["run_name"]
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -69,10 +80,13 @@ def plan_video(config_path: str | Path, registry: Registry, dataset_dir: str | P
         "enable_bucket = true\n"
         "bucket_no_upscale = false\n\n"
         "[[datasets]]\n"
-        f"video_directory = {json.dumps(str(dataset_dir / 'videos'))}\n"
-        f"cache_directory = {json.dumps(str(run_dir / 'cache'))}\n"
-        f"target_frames = {_toml_list(cfg['target_frames'])}\n"
-        f"frame_extraction = {json.dumps(cfg.get('frame_extraction', 'head'))}\n",
+        + (f"video_directory = {json.dumps(str(dataset_dir / 'videos'))}\n"
+           f"cache_directory = {json.dumps(str(run_dir / 'cache'))}\n"
+           f"target_frames = {_toml_list(cfg['target_frames'])}\n"
+           f"frame_extraction = {json.dumps(cfg.get('frame_extraction', 'head'))}\n"
+           if videos else
+           f"image_directory = {json.dumps(str(dataset_dir / 'images'))}\n"
+           f"cache_directory = {json.dumps(str(run_dir / 'cache'))}\n"),
         encoding="utf-8",
     )
 
@@ -111,8 +125,8 @@ accelerate launch --num_cpu_threads_per_process 1 --mixed_precision bf16 src/mus
     plan = {
         "kind": "video_lora", "run_name": cfg["run_name"], "mode": mode,
         "base_model": model.id, "license": model.license, "trainer": "musubi-tuner",
-        "trainer_version": cfg.get("trainer_version"), "clips": len(videos),
-        "trigger": cfg.get("trigger"), "files": [str(dataset_toml), str(run_sh)],
+        "trainer_version": cfg.get("trainer_version"), "clips": len(videos), "images": len(images),
+        "trigger": cfg.get("trigger"), "warnings": warnings, "files": [str(dataset_toml), str(run_sh)],
         "cost": estimate_cost(cfg.get("gpu", {})),
     }
     (run_dir / "plan.json").write_text(json.dumps(plan, indent=2, ensure_ascii=False), encoding="utf-8")

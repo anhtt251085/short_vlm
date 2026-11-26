@@ -13,7 +13,7 @@ from pathlib import Path
 
 import yaml
 
-SCOPES = ("tts_training", "voice_conversion", "video_training", "commercial_use")
+SCOPES = ("tts_training", "voice_conversion", "video_training", "image_training", "commercial_use")
 
 
 @dataclass

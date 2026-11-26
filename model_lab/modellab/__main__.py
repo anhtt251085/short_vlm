@@ -11,6 +11,7 @@ from pathlib import Path
 from . import eval_audio, eval_video
 from .audio_data import AudioRules, build_audio_dataset
 from .consent import Ledger
+from .image_data import build_image_dataset
 from .planners import load_yaml, plan_tts, plan_video, voice_matrix
 from .registry import LicenceError, Registry
 from .textnorm_vi import normalize
@@ -53,6 +54,10 @@ def cmd_video_data(a):
     summary = build_video_dataset(a.input, Ledger.load(a.consent), a.out, rules=rules,
                                   mode=cfg.get("mode", "commercial"), fix=a.fix)
     _print(summary)
+
+
+def cmd_image_data(a):
+    _print(build_image_dataset(a.sheets, Ledger.load(a.consent), a.out, mode=a.mode))
 
 
 def cmd_plan_video(a):
@@ -141,7 +146,14 @@ def main(argv=None) -> int:
     s.add_argument("--fix", action="store_true", help="crop, scale, and set frame rate to the target")
     s.set_defaults(fn=cmd_video_data)
 
-    s = sub.add_parser("plan-video", help="write a video LoRA training job for a GPU machine")
+    s = sub.add_parser("image-data", help="cut character sheets into a captioned image LoRA dataset")
+    s.add_argument("--sheets", default=str(CONFIGS / "fox_sheets.yaml"))
+    s.add_argument("--consent", required=True)
+    s.add_argument("--out", required=True)
+    s.add_argument("--mode", choices=["commercial", "research"], default="commercial")
+    s.set_defaults(fn=cmd_image_data)
+
+    s = sub.add_parser("plan-video", help="write a LoRA training job (clips or images) for a GPU machine")
     s.add_argument("--dataset", required=True)
     s.add_argument("--out", default=str(ROOT / "runs"))
     s.add_argument("--config", default=str(CONFIGS / "video_lora.yaml"))

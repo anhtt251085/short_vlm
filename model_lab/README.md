@@ -17,6 +17,7 @@ This folder is self-contained so it can move to its own repository later.
 | Vietnamese text normalisation (numbers, money, dates, dialects) | any computer | built, tested |
 | Speech dataset checks and export | any computer (ffmpeg) | built, tested |
 | Video clip dataset checks and export | any computer (ffmpeg) | built, tested |
+| Image dataset from character sheets (cut-out, shadow removal, new backgrounds, captions) | any computer | built, tested; first Fox dataset built |
 | Voice matrix (accent x voice type: what is ready, what is missing) | any computer | built, tested |
 | Training job files (configs + launch scripts) | any computer | built, tested; scripts not run |
 | Training | GPU machine | not run; no GPU in this environment |
@@ -70,6 +71,14 @@ Build a video dataset (CSV columns: `path,caption,source_id`; every caption must
 python -m modellab video-data --input clips.csv --consent consent.yaml --out data/video --fix
 ```
 
+Build an image dataset from character sheets (see `configs/fox_sheets.yaml`):
+
+```bash
+python -m modellab image-data --consent consent.yaml --out data/fox_images --mode research
+```
+
+This cuts each figure out of the sheet's flat background, removes floor shadows, places it on five backgrounds, and writes a caption per image. It runs in research mode until the rights to the concept images (generated with ChatGPT) are confirmed for commercial use.
+
 Write training jobs for a GPU machine:
 
 ```bash
@@ -77,7 +86,7 @@ python -m modellab plan-tts --dataset data/speech
 python -m modellab plan-video --dataset data/video
 ```
 
-Each writes `runs/<run_name>/` with the trainer config, `run.sh`, and `plan.json` (licence, data summary, cost estimate). Copy the folder to the GPU machine, set `MELO_DIR` or `MUSUBI_DIR`, check the flags against the pinned trainer version, and run `run.sh`.
+`plan-video` accepts either clips (`videos/`) or images (`images/`). Each writes `runs/<run_name>/` with the trainer config, `run.sh`, and `plan.json` (licence, data summary, cost estimate). Copy the folder to the GPU machine, set `MELO_DIR` or `MUSUBI_DIR`, check the flags against the pinned trainer version, and run `run.sh`.
 
 Evaluate outputs:
 
@@ -102,16 +111,18 @@ configs/
   consent.example.yaml  consent and rights ledger template
   video_lora.yaml       video LoRA run settings
   tts.yaml              speech fine-tune run settings
+  fox_sheets.yaml       which Fox sheets, grid layouts, and captions make the image dataset
 modellab/
   registry.py           licence gate
   consent.py            consent and rights checks
   textnorm_vi.py        Vietnamese normalisation with dialects
   audio_data.py         speech dataset checks and exports (LJSpeech, MeloTTS)
   video_data.py         clip dataset checks and export (musubi-tuner layout)
+  image_data.py         character sheets to a captioned image dataset
   planners.py           training job files and the voice matrix
   eval_audio.py         audio checks, word and character error rate
   eval_video.py         character consistency proxies, VLM checklist
   __main__.py           command line
 docs/training-plan.md   phases, data, compute, costs, gates, risks
-tests/                  52 tests using synthetic audio and video
+tests/                  60 tests using synthetic audio, video, and character sheets
 ```

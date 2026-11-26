@@ -1,0 +1,69 @@
+# First image dataset for the Fox, cut from the official concept sheets.
+# Paths are relative to this file. Cells are listed left to right, top to bottom.
+# split: grid (default) cuts equal cells, snapped to empty lines; use it when figures touch.
+# split: components finds each figure as a separate shape; use it for full-body sheets.
+#
+# Captions name only what changes (view, pose, expression, mouth, background).
+# The fixed look (orange fur, glasses, navy suit, waistcoat, red tie) is left out on purpose,
+# so the model ties it to the trigger phrase instead of to the words.
+
+trigger: "mntr fox"
+source_id: fox_concepts_chatgpt     # must exist in the consent and rights ledger
+backgrounds:                        # each figure is placed on every background
+  - {name: light blue background, color: "#97C7FD"}
+  - {name: white background, color: "#FFFFFF"}
+  - {name: warm beige background, color: "#F3E9DC"}
+  - {name: soft grey background, color: "#D9DDE3"}
+  - {name: pale green background, color: "#DFF0E3"}
+
+sheets:
+  - file: ../../assets/character/concepts/fox.webp
+    grid: [3, 2]                    # rows, columns
+    split: components               # figures are separate shapes; find each one instead of cutting a grid
+    framing: full body
+    cells:
+      - front view, standing relaxed, gentle smile
+      - thinking, paw on chin, looking up
+      - pointing to the side with open palm, open smile
+      - happy, fists at chest, eyes closed, big smile
+      - worried, paws on cheeks, mouth open
+      - jumping and celebrating, fists raised, big smile
+
+  - file: ../../assets/character/concepts/fox_turnaround_final.webp
+    grid: [1, 4]
+    split: components
+    framing: full body
+    cells:
+      - front view, standing
+      - three-quarter view, standing
+      - side view, standing
+      - back view, standing
+
+  - file: ../../assets/character/concepts/fox_expressions.webp
+    grid: [2, 3]
+    framing: head and shoulders
+    cells:
+      - calm smile
+      - excited, open mouth smile
+      - surprised, mouth open
+      - thinking, paw on chin, looking up
+      - concerned, raised brows
+      - proud, eyes closed, gentle smile
+
+  - file: ../../assets/character/concepts/fox_talking_final.webp
+    grid: [2, 4]
+    framing: head and shoulders, talking
+    cells:
+      - mouth closed, smile
+      - mouth slightly open
+      - mouth wide open
+      - mouth rounded
+      - mouth small and rounded
+      - wide smile showing teeth
+      - top teeth on lower lip
+      - relaxed closed smile
+
+# Not used, and why:
+#   fox_turnaround.webp      superseded; face narrower than the official face
+#   fox_mouths.webp          superseded by fox_talking_final.webp
+#   fox_mouths_fix_a/b.webp  eyes look sideways (reads as a side-eye)

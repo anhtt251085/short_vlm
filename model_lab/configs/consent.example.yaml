@@ -6,6 +6,7 @@
 #   tts_training       - recordings may be used to train speech models
 #   voice_conversion   - the voice may be used as a conversion target
 #   video_training     - clips may be used to train video models
+#   image_training     - images may be used to train image or video models
 #   commercial_use     - outputs may be used in a paid product
 
 speakers:
@@ -34,3 +35,11 @@ assets:
     contract_ref: null
     revoked: false
     scopes: [video_training, commercial_use]
+
+  - id: fox_concepts_chatgpt
+    kind: image
+    source: generated with ChatGPT (assets/character/concepts/fox*.webp)
+    contract_ref: null
+    revoked: false
+    # Add commercial_use only after confirming OpenAI's terms allow it.
+    scopes: [image_training, video_training]
