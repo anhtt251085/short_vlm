@@ -1,85 +1,91 @@
-# Automated Short-Video Product: Feasibility, Business Plan, Architecture, Implementation Plan
+# Short Video Studio: Feasibility, Business Plan, Architecture, Implementation Plan
 
-Status: draft for decision. Prices and platform rules were checked in late November 2026 from public sources and must be re-verified before any commitment.
+Revision 2 (November 2026). Revision 1 assumed template-only videos. This revision adds story-driven scenes and text-to-video clips, and reprices the business around their real cost. Prices come from public sources checked in November 2026 and must be re-verified before any commitment.
+
+## Summary
+
+- **What exists:** a working MVP (`app/`) that turns a topic into a 9:16 video. It writes a story brief (problem, idea, action, result, call to action), draws a cartoon presenter whose pose and prop match each line, adds a voiceover, and adds a slow camera move. Cost per video is about $0.01 to $0.05.
+- **What is missing:** generated video clips (text-to-video), a VLM that checks each clip against the narration, and proper voice and art quality.
+- **Business verdict:** viable as a low-cost story-video tool for faceless business and education channels, especially Vietnamese-language ones. It is not viable as a generative-video reseller. Generated clips cost $1 to $8 per 20-second video, which breaks low-price subscriptions unless they are priced by credit.
+- **Recommended path:** make the illustrated story video the default product. Offer generated clips as a metered add-on, priced above cost. Validate with your own channel first, then with a small pilot.
 
 ---
 
 ## Part 1. Feasibility
 
-### 1.1 Technical feasibility: YES
+### 1.1 What is technically proven
 
-| Component | Maturity | Risk |
+| Capability | Status | Notes |
 |---|---|---|
-| Template video rendering (ffmpeg, MoviePy, Remotion) | Mature | Low |
-| Voiceover (TTS), including Vietnamese | Mature via cloud; local options weaker for Vietnamese | Low to medium |
-| Brief generation (LLM) | Mature | Low |
-| Product understanding from images (VLM) | Good for common products; weak on fine detail, small text, and brand logos | Medium |
-| QA of rendered frames (VLM) | Good for "is product visible / text readable / layout broken" checks | Medium |
-| Generative AI video clips (Veo, Kling, Runway, etc.) | Improving, but expensive and inconsistent for specific products | High (keep out of MVP) |
-| Publishing via official APIs | Possible, but heavily restricted (see 1.3) | High |
+| Story brief (rule-based fallback and LLM path) | Built, tested | Brief schema includes story arc, pose and prop per scene |
+| Illustrated presenter with poses and props | Built | 6 poses, 10 props; drawn with Pillow |
+| Vietnamese text rendering | Tested | Diacritics display correctly with DejaVu Sans |
+| Voiceover (gTTS) | Built, tested | Free, unofficial Google service; needs internet |
+| Camera move (zoompan) per scene | Built | Slow zoom; no transitions yet |
+| Technical QA (ffprobe) | Built, tested | Checks shape, length, audio, size |
+| Text-to-video clips | Not built | Adapter needed; no GPU or video API key in the current environment |
+| VLM check of clips against narration | Not built | Design in Part 3 |
 
-**Conclusion:** Template-based rendering with a cloud LLM and VLM is clearly feasible. Generative video and fully unattended posting are not needed for the MVP.
+### 1.2 Generated video cost (the key input)
 
-### 1.2 Market and competition: FEASIBLE BUT CROWDED
+Hosted text-to-video prices from the November 2026 comparison sources. They vary by resolution, audio, and source, so verify them on each vendor's page:
 
-Existing AI ad/UGC video tools include Creatify, Arcads, HeyGen, and Higgsfield. Published prices vary between sources; reported starting points are roughly $15 to $40 per month, with per-clip costs of about $2 to $10 for AI-actor or generative clips. (Sources: [Higgsfield comparison](https://higgsfield.ai/blog/best-ai-ad-generators-2026), [Creatify pricing](https://creatify.ai/blog/arcads-pricing-(2026)-plans-credits-and-what-you-ll-actually-pay).)
+| Option | Reported price | 20-second video (approx.) |
+|---|---|---|
+| Veo 3.1 Lite, 720p | about $0.03 to $0.05 per second | $0.60 to $1.00 |
+| Kling 3.0, 1080p, no audio | about $0.11 per second | about $2.20 |
+| Kling O3 Standard (via Runway) | about $0.13 per second | about $2.60 |
+| Veo 3.1 with audio (via Runway) | about $0.40 per second | about $8.00 |
+| Open model (Wan) self-hosted | GPU about $1.89 per hour on an H100 | unknown; depends on generation time per second of video |
 
-Implication: a generic "AI product video" tool will compete on price and features against well-funded products. We need a narrower wedge.
+Sources: [Runway and vendor listings aggregated by ModelsLab](https://modelslab.com/blog/api/veo-3-1-vs-kling-3-sora-2-ai-video-api-cost-2026), [aggregated 2026 pricing overview](https://invideo.io/blog/ai-video-model-pricing), [Atlas Cloud cost-per-second comparison](https://www.atlascloud.ai/blog/case-studies/Top-5-ai-video-apis-compared-speed-latency-and-cost-per-second-2026).
 
-**Candidate wedges (ranked by my recommendation):**
+**Conclusion:** A 20-second generated video costs about $1 to $8 in model fees, depending on model and audio. That is 100 to 500 times the illustrated route. Self-hosting an open model could lower the cost at high volume, but I have not measured generation time, so that case is unproven.
 
-1. **Vietnamese and Southeast Asian marketplace sellers** (TikTok Shop, Shopee, Lazada, Facebook). Vietnamese voiceover and captions, local price and promo formats, and output tuned for these platforms. Competitors built for English-speaking markets are weaker here.
-2. **Small agencies and freelancers** managing many SKUs for several clients. They need batch production and approval workflows.
-3. **Privacy-sensitive sellers** who want local or private processing of product images.
+### 1.3 Unit economics per 20-second video
 
-### 1.3 Platform constraints (critical)
+| Route | Model cost | Platform cost | Total (approx.) |
+|---|---|---|---|
+| Illustrated story (default) | LLM brief $0.00 to $0.02 | Render about $0.0001; voice free (gTTS) or a few cents on a paid TTS | $0.01 to $0.05 |
+| Illustrated + VLM check (10 frames) | as above + about $0.02 | as above | $0.03 to $0.07 |
+| Generated clips (4 to 5 scenes), 720p, no audio | $0.60 to $2.60 | as above | $0.65 to $2.70 |
+| Generated clips with audio | $6 to $8 | as above | about $6 to $8.10 |
 
-- **TikTok Content Posting API:** Until the client passes TikTok's audit, posts are restricted to private visibility, and unaudited clients can serve only up to 5 users in a 24-hour window, with those accounts private at posting time. Passing the audit does not make earlier private posts public. Audit requires a wide-audience intended use case, a user preview, editable title and hashtags, no added promotional watermarks, and explicit user consent before upload. (Source: [TikTok Content Sharing Guidelines](https://developers.tiktok.com/docs/en/content-sharing-guidelines), [bundle.social on TikTok approval](https://bundle.social/blog/tiktok-api-approval).)
-- **YouTube Data API:** `videos.insert` costs 1,600 quota units. The default project allocation is 10,000 units per day, which is about six uploads per day. Higher volume requires a quota extension request from Google. (Source: [YouTube quota cost](https://developers.google.com/youtube/v3/determine_quota_cost).)
-- **Meta (Instagram Reels / Facebook):** Requires a Business or Creator account and Graph API approval.
+### 1.4 Platform and legal constraints (unchanged, still critical)
 
-**Consequence:** Fully automated posting to TikTok at scale is not available at launch. The MVP should produce **export-ready files plus a scheduling and approval workflow**, and add direct posting only after the relevant audits pass.
+- **TikTok Content Posting API:** unaudited clients can only post privately, with a 5-user cap per 24 hours. Passing the audit lifts the restriction for new posts only. ([TikTok guidelines](https://developers.tiktok.com/docs/en/content-sharing-guidelines))
+- **YouTube Data API:** an upload costs 1,600 quota units against a default of 10,000 per day, about six uploads. More requires a quota extension. ([YouTube quota](https://developers.google.com/youtube/v3/determine_quota_cost))
+- **AI disclosure:** TikTok and YouTube require labelling of realistic AI-generated content. The app already adds a disclosure line to post text.
+- **Advertising claims:** the app flags words such as "best" and "guaranteed". Vietnam's advertising law applies to product ads, so a human must still approve claims.
+- **Voice:** do not clone real people's voices without written consent.
+- **Music:** use licensed or royalty-free audio. The app does not add music yet.
 
-### 1.4 Legal and compliance (Vietnam, to be confirmed with a lawyer)
+### 1.5 Market and competition
 
-- **AI-generated content labelling:** TikTok and YouTube require disclosure of realistic AI-generated or altered content. Build the labelling into the publish step.
-- **Advertising law:** Product claims (for example "best", "cures", "guaranteed results") create legal risk. The brief agent must flag them, and a human must approve.
-- **Personal data:** Product images can contain people. Voice cloning of real people needs written consent. Vietnam's personal data protection rules apply to any customer data we store.
-- **Music and stock assets:** Use licensed or royalty-free sources only.
-- **Business registration:** A Vietnamese company or partner is needed to invoice local customers and handle payments.
+Many AI product-video and UGC ad tools already exist, including Creatify, Arcads, HeyGen, and Higgsfield, with entry prices around $15 to $40 per month ([Higgsfield comparison](https://higgsfield.ai/blog/best-ai-ad-generators-2026)). These tools target e-commerce ads with AI actors.
 
-### 1.5 Unit economics (estimates, to validate in the pilot)
+Our angle is different in three ways:
+1. **Story-first educational and business content**, not ad creatives.
+2. **A consistent cartoon presenter** that costs almost nothing per video.
+3. **Vietnamese voice and on-screen text** from the start.
 
-| Cost item per video (30 s, template-based) | Estimate |
-|---|---|
-| LLM brief generation | < $0.01 |
-| VLM product analysis (a few images) | < $0.02 |
-| VLM QA (8 sampled frames) | < $0.02 |
-| TTS voiceover | < $0.05 |
-| Render compute | < $0.01 |
-| Storage and bandwidth | < $0.01 |
-| **Total (template route)** | **about $0.10 to $0.20** |
-| Optional generative B-roll clip (per clip) | $2 to $10 (avoid in MVP) |
+We are not yet better than these tools at visual quality, and the illustrated style is basic. That is the main product risk.
 
-With a template route, gross margin is very high. Revenue depends on pricing and conversion, not compute. Human review time is the largest real cost, so review tooling matters.
+### 1.6 Monetization reality (creator side)
 
-### 1.6 Feasibility verdict
+Earnings from platforms are low, especially for Vietnamese audiences. Earlier research put Vietnam YouTube Shorts RPM around $0.03 to $0.10 per 1,000 views, and TikTok creator rates are similar or lower ([vidIQ](https://vidiq.com/blog/post/youtube-shorts-monetization/), [Dynamoi Vietnam data](https://dynamoi.com/data/youtube-adsense-rpm/vn)). A faceless channel usually earns more from brand deals, affiliate links, and its own product or course than from platform payouts. Customers buying this tool will need to make money from that route, so our pricing should not depend on platform income.
 
-- **Technically:** Yes, with the template-first design.
-- **Commercially:** Possible only with a focused wedge (Vietnamese and SEA marketplace sellers, or agencies). A generic tool faces strong competition.
-- **Platform-wise:** Publishing must start as export plus approval. Direct posting depends on TikTok audit and YouTube quota decisions outside our control.
+### 1.7 Feasibility verdict
 
-**Go/no-go test before building the full product (2 to 3 weeks, low cost):**
+- **Technically:** the illustrated story route works and is cheap. Generated clips work through a provider adapter, but cost is the constraint.
+- **Commercially:** viable only if (a) the default is the cheap illustrated route and (b) generated clips are sold as metered credits priced above cost. Flat low-price plans with unlimited generated clips lose money.
+- **Platform-wise:** publishing stays export-plus-approval until audits are granted.
 
-1. Recruit 10 to 20 Vietnamese sellers (TikTok Shop or Shopee) and offer free video production for 4 weeks.
-2. Produce videos manually with a prototype pipeline (ffmpeg templates, TTS, a cloud LLM script).
-3. Measure:
-   - Time saved per video vs. the sellers' current process.
-   - Whether sellers post the videos (activation).
-   - Views, click-through, and sales compared to their usual content.
-   - Willingness to pay (ask for a paid pilot at the end).
-4. **Go** if at least 5 of 10 to 20 sellers post regularly and at least 3 agree to pay.
-   **No-go or pivot** if sellers don't post, don't see results, or won't pay.
+**Go/no-go pilot (3 to 4 weeks):**
+1. Make 20 to 30 story videos for your own channel and 10 pilot creators using the illustrated route.
+2. Generate 10 test videos with one hosted text-to-video model, and measure cost, time, and whether the clips match the narration (checked by hand first).
+3. Measure: time saved per video, posting rate, views versus the creators' usual content, and willingness to pay for credits.
+4. **Go** if at least 5 pilot creators post weekly and at least 3 pay. **Pivot** toward faceless-channel services if they don't.
 
 ---
 
@@ -87,73 +93,76 @@ With a template route, gross margin is very high. Revenue depends on pricing and
 
 ### 2.1 Problem
 
-Small sellers and agencies need many short product videos to stay visible on TikTok Shop, Shopee, and Reels. Filming and editing each video takes hours, or they pay freelancers. Most sellers cannot produce enough content.
+Creators who make faceless business and education channels need many short videos with a story, a presenter, and narration in their own language. Animation and editing are slow and costly, and generic AI video tools often don't keep a presenter consistent or match the narration.
 
 ### 2.2 Solution
 
-A system that turns product images and a short brief into ready-to-post vertical videos, with Vietnamese voiceover, captions, and a quality check, and that schedules them for approval and posting.
+A studio that turns a topic into a story video: a consistent cartoon presenter, scenes that match the narration, a voiceover, and platform-ready output with caption and hashtags. Creators choose the default illustrated style, or add generated clips when they need motion.
 
 ### 2.3 Target customers
 
 | Segment | Need | Priority |
 |---|---|---|
-| Solo TikTok Shop / Shopee sellers (SME) | Many videos per week at low cost | 1 (main) |
-| Small video or ad agencies | Batch output for multiple clients, approval workflow | 2 |
-| Brands with in-house marketing teams | Localization, brand control, compliance | 3 (later) |
+| Vietnamese faceless business and education channel owners | Story videos at low cost, Vietnamese voice | 1 (main) |
+| Small training or course creators | Short lessons with a presenter | 2 |
+| Marketing agencies with many small clients | Batch production, approvals | 3 (later) |
 
-### 2.4 Pricing (initial hypothesis to test)
+### 2.4 Pricing (hypothesis to test)
 
-| Plan | Price (per month) | Included |
-|---|---|---|
-| Starter | Around $15 to $20 | 30 videos, 1 brand, export only |
-| Pro | Around $50 to $80 | 150 videos, scheduling, VLM QA, Vietnamese and English voice |
-| Agency | Around $150 to $300 | 500+ videos, multiple brands, team approval roles |
+The illustrated route is cheap, so it can be included generously. Generated clips are metered at about 2 to 3 times their model cost.
 
-Pricing must be tested in the pilot. Competitors' entry prices are roughly $15 to $40 per month, so we can match the low end and compete on language and platform fit.
+| Plan | Monthly price | Included | Credit price |
+|---|---|---|---|
+| Starter | $12 to $19 | 30 illustrated story videos, Vietnamese and English voice | Generated seconds: about $0.25 to $0.40 per second |
+| Pro | $39 to $59 | 150 illustrated videos, scheduling and approval, VLM check | Generated seconds: about $0.20 to $0.30 per second (volume discount) |
+| Studio (agencies) | $149 to $299 | 500+ videos, multiple brands, team roles | Negotiated |
+
+Check: a 20-second video with a silent model at about $0.10 per second costs us $2. Charged at $0.25 per second, the user pays $5, leaving about $3 of margin. With an audio model at about $0.40 per second, the same video costs us $8, which is more than the $5 charge at $0.25 per second, so the margin is negative. The default offer must therefore exclude audio-generating models, or charge more for them.
 
 ### 2.5 Revenue model
 
-- Monthly subscription by plan.
-- Overage packs for extra videos.
-- Later: onboarding service for agencies, and a marketplace template library.
+- Monthly subscriptions by plan.
+- Metered credits for generated seconds, billed at cost plus a margin.
+- Later: template packs, a character library, and onboarding for agencies.
 
 ### 2.6 Illustrative scenario (not a forecast)
 
-Assume 200 paying Pro-equivalent customers at about $60 per month: about $12,000 monthly recurring revenue. Operating costs (cloud, APIs, storage) are small per customer, so the main costs are people (2 to 3 engineers, 1 product and operations person) and sales. Whether this is achievable depends entirely on the pilot results.
+If 200 customers pay an average of $25 per month, that is $5,000 monthly recurring revenue. Hosting, the LLM, and TTS cost well under $1 per customer per month on the illustrated route, and generated clips add cost only when customers use them. The main costs are people (2 engineers and a part-time product and support person) and sales.
 
 ### 2.7 Go-to-market
 
-1. **Pilot** with 10 to 20 sellers (free, in exchange for feedback and results).
-2. **Community channels:** Vietnamese e-commerce seller groups, TikTok Shop creator and seller communities, and local marketing meetups.
-3. **Case studies** from pilot sellers with real view and sales numbers.
-4. **Partnerships** with MCNs, marketing agencies, and e-commerce service providers.
+1. Make your own channel the first case study, with real views and watch-time numbers.
+2. Pilot with 10 Vietnamese creators (free, in exchange for feedback and results).
+3. Join creator communities and business or education groups.
+4. Offer a credit bundle for users who want generated motion.
 
-### 2.8 Competitive advantage
+### 2.8 Competitive advantage (honest)
 
-- Vietnamese voice and captions, and content styled for Vietnamese marketplaces.
-- Lower price point suited to SME budgets.
-- Option for local or private processing (VLM run on-premise).
-- Integrated approval, scheduling, and compliance checks.
+- Story structure and a consistent presenter, not just ad templates.
+- Low cost per video on the default route.
+- Vietnamese voice and text from the start.
+- Simple self-hosting option for privacy later.
+
+We do not yet have an advantage in visual quality. Improving the art is a priority.
 
 ### 2.9 Key risks and mitigations
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Platform API restrictions (TikTok audit, YouTube quota) | Can't auto-post at scale | Export and scheduling first; apply for audits and quota early |
-| Strong competitors | Price pressure | Focus on Vietnamese market and SME workflows |
-| Low-quality output | Churn | VLM QA gate, human review, template library |
-| Legal claims in ads | Liability for customers and us | Claims checker, mandatory human approval |
-| AI disclosure rules change | Forced redesign | Labelling as a configurable step |
-| Platform algorithm changes | Views drop | Don't promise results; sell production capacity |
-| Cloud VLM cost or outage | Margin or service risk | Local VLM option; provider abstraction |
+| Generated clips cost too much | Negative margin | Metered credits; default to illustrated; silent models only |
+| Illustrated style looks basic | Low retention | Improve art; add a character library; test with real viewers |
+| Better-funded AI video tools | Price pressure | Focus on story and Vietnamese; keep prices low |
+| Low creator income from platforms | Weak willingness to pay | Price on production time saved, not platform earnings |
+| Platform API limits | No auto-posting at scale | Export and approval first |
+| AI disclosure and claims rules | Account or legal risk | Automatic disclosure; claims check; human approval |
+| VLM cannot judge clips reliably | Wrong clips pass QA | Start with human review; benchmark the VLM on labeled clips |
 
 ### 2.10 Success metrics (first 6 months)
 
-- Pilot: at least 5 of 10 to 20 sellers post weekly.
-- Time per video under 10 minutes including review (vs. hours manually).
-- Paying customers: 3 from the pilot, then 30 within 3 months of launch.
-- Monthly churn under 8%.
-- Gross margin above 80% on the template route.
+- Your own channel: 30 videos published, measured views and watch time per video against your previous content.
+- Pilot: 5 of 10 creators post weekly; 3 pay for credits or a plan.
+- Time per video under 15 minutes including review.
+- Gross margin above 70% on the illustrated route, and above 30% on generated credits.
 
 ---
 
@@ -161,191 +170,169 @@ Assume 200 paying Pro-equivalent customers at about $60 per month: about $12,000
 
 ### 3.1 Principles
 
-- **Template-first rendering;** generative clips are optional add-ons.
-- **Agents are narrow and typed:** each agent reads and writes versioned JSON schemas.
-- **Provider abstraction:** cloud or local for LLM, VLM, and TTS behind one interface.
-- **Human approval gate** before any publish.
+- **Default to the cheap route:** the illustrated story video is the baseline; generated clips are optional.
+- **Typed contracts between steps:** the brief schema is the only interface between the brief step and the render step.
+- **Provider adapters:** LLM, VLM, TTS, and video generator each sit behind one interface.
+- **Human approval before publishing.**
 - **Official APIs only** for platforms.
 
-### 3.2 System diagram
+### 3.2 Pipeline (current and planned)
 
 ```
-                 +-------------------+
- Seller/Agency ->|   Web app / API   |<---- Approval UI, dashboard
-                 | (FastAPI + React) |
-                 +---------+---------+
-                           |
-                   +-------v--------+
-                   |  Postgres      |  products, briefs, jobs, posts, metrics
-                   +-------+--------+
-                           |
-                   +-------v--------+
-                   |  Job queue     |  (Redis + Celery / RQ)
-                   +--+----+----+---+
-                      |    |    |
-        +-------------+    |    +-------------------+
-        |                  |                        |
-+-------v--------+  +------v---------+      +-------v--------+
-| Brief Agent    |  | Production     |      | Publish Agent  |
-| - VLM: product |  | Agent          |      | - TikTok adapter|
-|   analysis     |  | - TTS          |      | - YouTube adapter|
-| - LLM: script, |  | - Subtitles    |      | - Meta adapter |
-|   shot list,   |  | - Render       |      | - Scheduler    |
-|   claims check |  |   (ffmpeg /    |      | - AI label     |
-+-------+--------+  |   Remotion)    |      +-------+--------+
-        |           | - VLM QA       |              |
-        |           +------+---------+              |
-        |                  |                        |
-+-------v------------------v------------------------v--------+
-|  Model gateway: cloud (Claude / GPT / Gemini) or local     |
-|  (vLLM serving Qwen-VL / InternVL; local TTS)              |
-+------------------------------------------------------------+
-        |
-+-------v--------+   +---------------+   +-----------------+
-| Object storage |   | Secrets vault |   | Metrics & logs  |
-| (S3 / MinIO)   |   | (OAuth tokens)|   | (Prometheus,    |
-| images, videos |   |               |   |  Grafana/Sentry)|
-+----------------+   +---------------+   +-----------------+
+Topic / product
+      |
+      v
+[Brief step]  story arc, scenes, pose and prop per scene      (LLM or rule-based)  BUILT
+      |
+      v
+[Visual step]
+   route A: illustrated scene (Pillow)                          BUILT
+   route B: generated clip (text-to-video, image-to-video       PLANNED
+            with the presenter image as the starting frame)
+      |
+      v
+[Check step]  VLM samples frames, compares them with narration  PLANNED
+      |  fail -> regenerate that scene (max 2 retries)
+      v
+[Assemble]  clips in order, camera move, voiceover, QA (ffprobe) BUILT (route A)
+      |
+      v
+[Approve and export]  caption, hashtags, AI disclosure          BUILT (export only)
+      |
+      v
+[Publish]  platform adapters after audits                       PLANNED
 ```
 
 ### 3.3 Components
 
-| Component | Responsibility | Tech (suggested) |
+| Component | Responsibility | Current state |
 |---|---|---|
-| Web app / API | Product upload, brief review, approvals, schedule, dashboard | FastAPI, React or Next.js |
-| Database | Products, briefs (versioned), jobs, renders, posts, metrics | PostgreSQL |
-| Job queue | Run long steps asynchronously, retry failures | Redis + Celery (or Temporal for later complexity) |
-| Brief Agent | Analyze product images (VLM), write brief (LLM), check claims | Python, Pydantic schemas |
-| Production Agent | TTS, subtitles, music, template render, frame sampling for QA | ffmpeg, MoviePy or Remotion, Docker workers |
-| QA module | VLM checks on sampled frames: product visible, text in safe area, no artifacts | Same VLM gateway |
-| Publish Agent | Platform adapters, scheduling, AI label, post IDs and status | Platform SDKs / HTTP APIs |
-| Model gateway | Single interface for cloud and local models, cost tracking | LiteLLM or custom adapter |
-| Local model server (optional) | Private VLM for QA or analysis | vLLM, 1 GPU with 24 GB VRAM or more for a 7B-class model |
-| Storage | Source images, generated videos, exports | S3-compatible (MinIO for self-host) |
-| Observability | Job status, cost per video, error alerts | OpenTelemetry, Sentry, Grafana |
+| `app/brief.py` | Story brief, LLM prompt, claims check | Built; LLM path not yet run with a live key |
+| `app/illustrate.py` | Presenter poses and props | Built; 6 poses, 10 props |
+| `app/render.py` | Scene images, camera move, voice, MP4 | Built |
+| `app/qa.py` | Technical checks | Built |
+| `app/main.py` | API and approval flow | Built |
+| `static/index.html` | Single-page UI | Built; no story-specific controls yet |
+| Video adapter (`app/videogen.py`) | Text-to-video or image-to-video provider | Planned |
+| VLM check (`app/vlm_check.py`) | Frame-versus-narration check | Planned |
+| Credit ledger | Metering generated seconds | Planned |
 
-### 3.4 Data contract: `brief.json` (v1, sketch)
+### 3.4 Data contract: brief (v2)
+
+Each scene now carries a visual spec:
 
 ```json
 {
-  "brief_id": "uuid",
-  "version": 1,
-  "product": { "name": "", "category": "", "features": [], "price": null, "source_images": [] },
-  "target": { "market": "VN", "language": "vi", "audience": "" },
-  "platform": { "name": "tiktok_shop", "aspect": "9:16", "max_seconds": 30 },
-  "hook": "",
-  "beats": [ { "t": "0-3s", "visual": "", "voiceover": "", "on_screen_text": "" } ],
-  "cta": "",
-  "music_mood": "",
-  "claims_check": { "risky_claims": [], "status": "needs_review" },
-  "ai_disclosure_required": true,
-  "approval": { "status": "pending", "by": null }
+  "story": "problem_idea_action_result",
+  "hook": "Want to start a business?",
+  "beats": [
+    {
+      "on_screen": "Want to start a business?",
+      "voiceover": "Want to start your own business? Here are three simple steps.",
+      "visual": { "pose": "worried", "prop": "question" }
+    }
+  ],
+  "cta": "Follow for more business tips!",
+  "character": true,
+  "ai_disclosure": true
 }
 ```
 
-### 3.5 Workflow states
+Allowed poses: idle, thinking, pointing, happy, worried, celebrate. Allowed props: none, lightbulb, chart_up, checklist, coins, phone, question, cart, clock, customer, trophy. Unknown values fall back to idle and none.
 
-`draft brief` -> `brief approved` -> `assets ready` -> `rendered` -> `QA passed` (or `QA failed` -> re-render, max 2 retries) -> `final approved` -> `exported` or `scheduled` -> `published` -> `metrics collected`.
+### 3.5 Text-to-video route (planned design)
 
-Every state change is stored in Postgres so jobs can be resumed after failures.
+- **Input per scene:** the narration line, the visual prompt from the brief, and the presenter reference image.
+- **Model:** a hosted image-to-video model, with the presenter image as the starting frame to keep the character consistent. Silent output by default.
+- **Length:** 4 to 6 seconds per clip, joined in scene order, with the voiceover placed over the top.
+- **Fallback:** if a clip fails the check or the call fails, keep the illustrated scene for that beat.
 
-### 3.6 Deployment options
+### 3.6 VLM check (planned design)
 
-- **SaaS (default):** cloud-hosted app, cloud models, S3 storage, managed Postgres and Redis.
-- **Private / on-premise (agency or privacy tier):** same containers on a customer server with a local VLM on a GPU.
-- **Hybrid (recommended for launch):** cloud LLM for briefs, local or cloud VLM for QA depending on volume and customer requirement.
+- Sample 3 to 5 frames per clip.
+- Ask the VLM: does the frame show the pose and prop named in the brief, is text readable, and is anything broken?
+- Output a pass or fail with a reason. Failed clips are regenerated, up to two times, then replaced by the illustrated scene.
+- Benchmark first: label 100 clips by hand and measure agreement before relying on it.
 
-### 3.7 Security
+### 3.7 Deployment
 
-- OAuth tokens for platforms stored in a secrets vault, never in code or logs.
-- Per-tenant data isolation in the database and storage paths.
-- Uploaded images scanned for file type and size; people in images flagged for consent.
-- Audit log for every approval and publish action.
+- **Default:** one small cloud server running the app, object storage for videos, and cloud LLM and TTS calls.
+- **Privacy tier (later):** the same containers on a customer machine, with a local VLM on a GPU.
+- **Cost controls:** generated clips require a credit balance, and each generation is logged with its model cost.
 
 ---
 
 ## Part 4. Implementation Plan
 
-Assumes a team of 2 to 3 engineers, 1 product and operations person, and part-time legal review. Timelines are estimates.
+Team assumption: 2 engineers part-time, and you as product owner and first customer.
 
-### Phase 0: Feasibility (weeks 1 to 3)
+### Phase 0: Done (current)
 
-- Build a manual prototype pipeline: cloud LLM script, template render (ffmpeg), Vietnamese TTS, captions.
-- Recruit 10 to 20 pilot sellers; run the 4-week free pilot described in Part 1.6.
-- Start the TikTok Content Posting API audit application and the YouTube quota extension request now, since they take time and don't block the pilot.
-- Lawyer review of AI labelling, advertising claims, and personal data handling.
-- **Exit criteria:** go/no-go decision against the Part 1.6 thresholds.
+- MVP app: brief, illustrated story scenes, voice, camera move, QA, post text, web UI.
+- Tests: 9 passing.
+- Cost per illustrated video measured at about 6 seconds of render time on a small machine.
 
-### Phase 1: MVP (weeks 4 to 11)
+### Phase 1: Own-channel production (weeks 1 to 3)
 
-- Product upload and brief creation (Brief Agent with cloud VLM and LLM).
-- Template library (5 to 10 templates for common categories).
-- Production Agent: TTS, captions, music, render workers.
-- QA module (cloud VLM, frame sampling).
-- Approval UI: review brief, preview video, approve, edit.
-- Export: MP4 with captions, title, and hashtag text for copy-paste.
-- Basic dashboard: videos created, status, cost per video.
-- **Exit criteria:** 10 pilot sellers produce at least 50 videos with under 10 minutes of human review per video.
+- Produce 20 story videos for your channel; record watch time and retention.
+- Improve the presenter art: more poses, better hands, and a second character option.
+- Replace gTTS with a paid voice provider for quality, or keep it for testing only.
+- Add the optional music bed from licensed sources.
+- **Exit:** a measured comparison of your channel's results before and after.
 
-### Phase 2: Publishing and scheduling (weeks 12 to 17)
+### Phase 2: Generated clips (weeks 3 to 6)
 
-- Scheduling calendar and queue.
-- YouTube Shorts adapter (after quota extension is granted).
-- Meta Reels adapter (for Business or Creator accounts).
-- TikTok adapter: private posting first; switch to public only after audit passes.
-- AI disclosure label added automatically where required.
-- Post status and metrics collection (views, clicks) from platform APIs.
-- **Exit criteria:** paid pilot (3+ customers) running scheduled posts for 4 weeks without manual uploads.
+- Build `app/videogen.py` with one hosted image-to-video provider and silent output.
+- Add a cost log per clip and a per-project spending cap.
+- Hand-check 50 clips for narration match before automating the check.
+- **Exit:** clips cost within the planned range, and at least 70% pass hand review.
 
-### Phase 3: Quality and scale (weeks 18 to 26)
+### Phase 3: VLM check and retries (weeks 6 to 9)
 
-- Local VLM option (vLLM on a GPU); benchmark quality and cost vs cloud.
-- Metrics feedback loop: Brief Agent uses past performance to suggest hooks and formats.
-- Multi-brand and team roles for agencies.
-- Billing and subscription management (payment provider suitable for Vietnam).
-- Template marketplace and A/B variants of the same product.
-- Generative B-roll as an optional paid add-on, if demand justifies the cost.
+- Build `app/vlm_check.py` with frame sampling and the pass/fail prompt.
+- Benchmark against the hand-labeled clips; target agreement of 85% or better.
+- Automatic retry and fallback to the illustrated scene.
+- **Exit:** the VLM check catches the failures you found by hand.
 
-### Phase 4: Growth
+### Phase 4: Pilot and billing (weeks 9 to 14)
 
-- Marketplace integrations (Shopee and Lazada product feeds).
-- Additional languages (Thai, Indonesian) using the same pipeline.
-- Enterprise or private deployment tier.
+- Onboard 10 creators; add accounts, plans, and a credit ledger.
+- Payment provider suitable for Vietnam.
+- Publishing: export and scheduling only, with direct posting after audits.
+- **Exit:** 3 paying creators, and a go or pivot decision on the business.
 
-### 4.1 Milestones summary
+### Phase 5: Scale (later, only after Phase 4 passes)
 
-| Milestone | Target week | Decision |
+- Local VLM and self-hosted open video model, if volume justifies a GPU.
+- Character library and template packs.
+- Agency tier.
+
+### 4.1 Milestones
+
+| Milestone | Target | Decision |
 |---|---|---|
-| Pilot results | Week 3 to 4 | Go / pivot / stop |
-| MVP with pilot sellers | Week 11 | Continue to publishing |
-| Paid pilot | Week 17 | Fund scaling |
-| Local VLM benchmark | Week 22 | Offer private tier or not |
-
-### 4.2 Team and tooling
-
-- Backend: Python (FastAPI, Celery, Pydantic)
-- Frontend: React or Next.js
-- Infrastructure: Docker, a managed Postgres and Redis, S3-compatible storage, one GPU server if local models are used
-- Quality: automated tests on brief schemas and render output; a golden set of 20 products to check QA stability
-
-### 4.3 Budget (rough, to refine)
-
-- Development team: largest cost (salaries or contractors for 6 months)
-- Cloud API usage: low at pilot scale (estimated under a few hundred dollars per month for 20 sellers using the template route)
-- GPU server for local VLM (optional): one-time or monthly lease, roughly the cost of one mid-range GPU instance
-- Legal review and company setup in Vietnam
-- Marketing and pilot incentives
+| Own-channel results | Week 3 | Continue the illustrated product or stop |
+| Generated clip cost and quality | Week 6 | Keep or drop the generated route |
+| VLM check accuracy | Week 9 | Automate checks or keep human review |
+| Paying creators | Week 14 | Fund scaling or pivot |
 
 ---
 
-## Part 5. Decisions needed before building
+## Part 5. Decisions needed
 
-1. **Target segment:** Vietnamese TikTok Shop and Shopee sellers first, or agencies first?
-2. **Launch model:** export-and-schedule (safer, recommended) or direct posting from day one (depends on TikTok audit timing)?
-3. **VLM strategy:** cloud at launch with a local option later, or local from the start (requires GPU budget)?
-4. **Team and budget:** how many engineers and for how many months?
-5. **Legal entity:** Vietnamese company or partner for billing?
+1. **Default route:** illustrated story video as the default, with generated clips as a paid add-on. Recommended.
+2. **Generated clips:** silent model only, unless you accept the audio cost of about $8 per 20-second video.
+3. **Voice:** keep gTTS for testing, or pay for a better provider now?
+4. **Target first:** your own channel, then Vietnamese creators. Or agencies first?
+5. **Budget for Phase 2:** the hosted video model cost per test run, if you want the generated route tested.
 
 ## Next step
 
-Run the Phase 0 pilot. The pilot will show whether sellers actually post and pay, which is the main open question. Platform audit requests should be submitted now, in parallel.
+Finish the story-scene commit (blocked by permission at the moment), then produce 5 videos for your own channel on the illustrated route. Measure them against your previous content. That result decides whether generated clips are worth building.
+
+---
+
+## Revision history
+
+- **Revision 1:** feasibility, business plan, architecture, and implementation plan. Template-based videos only.
+- **Revision 2:** story scenes with presenter poses and props, camera move, text-to-video cost analysis, metered credit pricing, VLM check design, and a revised phased plan.

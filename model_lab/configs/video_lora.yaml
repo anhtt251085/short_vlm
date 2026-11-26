@@ -1,0 +1,33 @@
+# Video LoRA run: teach a Wan model our presenter character and story style.
+run_name: fox-pilot-v1
+mode: commercial                # commercial blocks any model whose licence is not confirmed
+base_model: wan2.1-t2v-1.3b     # pilot on the small model; switch to wan2.2-t2v-a14b for production
+trainer: musubi-tuner
+trainer_version: null           # pin a release or commit before training
+
+# Every caption must contain this phrase so the LoRA learns our Fox mentor.
+# Each cast member gets its own trigger later: "mntr owl", "mntr raccoon", "mntr bear", "mntr otter".
+trigger: "mntr fox"
+
+resolution: [544, 960]          # width, height (9:16 vertical)
+target_frames: [1, 25, 45]      # frame counts sampled from each clip
+frame_extraction: head
+
+paths:                          # model weights on the GPU machine
+  dit: /models/wan2.1/wan2.1_t2v_1.3B_bf16.safetensors
+  dit_high_noise: null          # needed only for Wan 2.2 A14B
+  vae: /models/wan2.1/Wan2.1_VAE.pth
+  t5: /models/wan2.1/models_t5_umt5-xxl-enc-bf16.pth
+
+training:
+  network_dim: 32
+  learning_rate: 2.0e-4
+  max_train_epochs: 16
+  save_every_n_epochs: 2
+  fp8_base: true
+  seed: 42
+
+gpu:
+  name: "24 GB GPU (e.g. RTX 4090) for 1.3B; H100 80GB for 14B"
+  est_hours: 4                  # estimate for ~100 short clips; measure on the first run
+  hourly_usd: null              # fill in your provider's price (one Nov 2026 listing: H100 80GB about $1.89/h)

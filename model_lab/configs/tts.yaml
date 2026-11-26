@@ -1,0 +1,15 @@
+# Speech model fine-tune: one multi-speaker model per language.
+# Each speaker in the dataset is one accent and voice type, so the model learns them all.
+run_name: vi-voices-pilot-v1
+mode: commercial
+base_model: melotts-vietnamese  # MIT. vieneu-tts-v3-turbo is blocked until its licence is confirmed.
+trainer_version: null           # pin a commit before training
+gpus: 1
+
+# Voice conversion model used for "vc_timbre" voices in configs/voices.yaml.
+vc_model: openvoice-v2          # blocked in commercial mode until its licence is confirmed
+
+gpu:
+  name: "24 GB GPU"
+  est_hours: 8                  # estimate; measure on the first run
+  hourly_usd: null

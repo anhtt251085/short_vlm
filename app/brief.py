@@ -12,7 +12,8 @@ import re
 
 import httpx
 
-from .schemas import Brief, Beat, ProjectIn
+from .illustrate import POSES, PROPS
+from .schemas import Beat, Brief, ProjectIn, Visual
 
 # Words that commonly create legal risk in product advertising.
 RISKY_TERMS = [
@@ -31,39 +32,74 @@ def _sentences(text: str) -> list[str]:
     return [p.strip(" -•") for p in parts if p.strip(" -•")]
 
 
+# Scene visuals for the story arc: hook (problem) -> idea -> action -> action -> call to action.
+ARC_VISUALS = [
+    Visual(pose="worried", prop="question"),
+    Visual(pose="pointing", prop="lightbulb"),
+    Visual(pose="happy", prop="checklist"),
+    Visual(pose="happy", prop="chart_up"),
+    Visual(pose="celebrate", prop="coins"),
+]
+
+TEXTS = {
+    "vi": {
+        "hook": "Bạn đang muốn kinh doanh?",
+        "hook_vo": "Bạn đang muốn bắt đầu kinh doanh? Hãy xem ba bước đơn giản nhé.",
+        "cta": "Nhấn follow để xem thêm mẹo kinh doanh!",
+        "tags": ["#kinhdoanh", "#khoinghiep", "#meohay"],
+        "idea": "Mỗi ý tưởng đều bắt đầu từ một vấn đề có thật.",
+        "result": "Theo dõi thu chi mỗi tuần để biết mình lãi hay lỗ.",
+        "invite": "Bắt đầu nhỏ, học nhanh, rồi mở rộng.",
+    },
+    "en": {
+        "hook": "Want to start a business?",
+        "hook_vo": "Want to start your own business? Here are three simple steps.",
+        "cta": "Follow for more business tips!",
+        "tags": ["#business", "#startup", "#smallbusiness"],
+        "idea": "Every good business starts with a real problem people already have.",
+        "result": "Track your money every week, so you know whether you are really making a profit.",
+        "invite": "Start small, test fast, then grow.",
+    },
+}
+
+
 def template_brief(data: ProjectIn) -> Brief:
+    """Rule-based story brief. Works offline; the LLM path writes richer scenes."""
     name = data.product_name
-    feats = _sentences(data.description)[:3]
-    if data.language == "vi":
-        hook = f"Bạn đã biết về {name} chưa?"
-        beats = [Beat(on_screen=hook, voiceover=hook)]
-        for f in feats or [f"{name} là lựa chọn đáng thử."]:
-            beats.append(Beat(on_screen=f[:60], voiceover=f))
-        cta = "Nhấn follow để xem thêm!"
-        hashtags = ["#review", "#muasamonline", "#xuhuong"]
-    else:
-        hook = f"Meet {name}"
-        beats = [Beat(on_screen=hook, voiceover=hook)]
-        for f in feats or [f"{name} is worth a try."]:
-            beats.append(Beat(on_screen=f[:60], voiceover=f))
-        cta = "Follow for more!"
-        hashtags = ["#review", "#shopping", "#fyp"]
-    text_all = " ".join([data.product_name, data.description])
+    t = TEXTS[data.language]
+    feats = _sentences(data.description)[:2]
+    idea_on = f"Idea: {name}" if data.language == "en" else f"Ý tưởng: {name}"
+    idea_vo = (f"Our idea is {name}. {t['idea']}" if data.language == "en"
+               else f"Ý tưởng của chúng ta là {name}. {t['idea']}")
+    middle = [(f[:60], f) for f in feats] or [(t["result"][:60], t["result"])]
+    scenes = [(t["hook"], t["hook_vo"]), (idea_on, idea_vo)] + middle + [(t["cta"], t["cta"])]
+
+    beats: list[Beat] = []
+    for i, (on, vo) in enumerate(scenes):
+        is_last = i == len(scenes) - 1
+        visual = ARC_VISUALS[-1] if is_last else ARC_VISUALS[min(i, len(ARC_VISUALS) - 2)]
+        beats.append(Beat(on_screen=on, voiceover=vo, visual=visual))
+
     caption = " ".join(b.voiceover for b in beats)[:300]
     return Brief(
-        hook=hook,
+        story="problem_idea_action_result",
+        hook=t["hook"],
         beats=beats,
-        cta=cta,
+        cta=t["cta"],
         caption=caption,
-        hashtags=hashtags,
-        claims_flags=find_claims(text_all),
+        hashtags=t["tags"],
+        claims_flags=find_claims(" ".join([name, data.description])),
     )
 
 
-PROMPT = """You write short vertical product videos (9:16).
+PROMPT = """You write short vertical story videos (9:16) with a cartoon presenter.
+Tell a story with this arc: a problem the viewer has, an idea, a concrete action, a result, then an invitation.
+Each beat must match its voiceover: the pose and prop must show what is being said.
 Return ONLY a JSON object with keys:
-hook (string), beats (list of {{"on_screen": string <=60 chars, "voiceover": string}}, 3 to 5 items),
+story (string), hook (string),
+beats (list of 4 to 5 items: {{"on_screen": string <=60 chars, "voiceover": string, "visual": {{"pose": one of {poses}, "prop": one of {props}}}}}),
 cta (string), caption (string), hashtags (list of strings starting with #), background (hex color), accent (hex color).
+The last beat must be the call to action.
 Language for all text: {lang_name}. Tone: {tone}. Target length: about {seconds} seconds.
 Avoid absolute or unverifiable claims (best, guaranteed, cures, 100%).
 
@@ -84,6 +120,8 @@ def llm_brief(data: ProjectIn) -> Brief:
         seconds=data.target_seconds,
         name=data.product_name,
         desc=data.description or "(none provided)",
+        poses=", ".join(POSES),
+        props=", ".join(PROPS),
     )
     resp = httpx.post(
         f"{base}/v1/messages",
@@ -101,6 +139,10 @@ def llm_brief(data: ProjectIn) -> Brief:
     if not match:
         raise ValueError("no JSON in model output")
     raw = json.loads(match.group(0))
+    # Replace unknown poses or props with safe defaults instead of failing.
+    for beat in raw.get("beats", []):
+        vis = Visual.model_validate(beat.get("visual") or {}).sanitized()
+        beat["visual"] = vis.model_dump()
     brief = Brief.model_validate(raw)
     brief.claims_flags = find_claims(
         " ".join([brief.hook, brief.caption] + [b.voiceover for b in brief.beats])

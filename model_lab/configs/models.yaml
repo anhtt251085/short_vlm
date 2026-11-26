@@ -1,0 +1,127 @@
+# Base model registry with licence status.
+#
+# commercial_ok:
+#   yes   - licence allows commercial use (still confirm the model card when downloading)
+#   no    - non-commercial or otherwise blocked for a paid product
+#   check - unclear or unverified; blocked in commercial mode until someone confirms it
+#
+# Licence notes come from public sources checked in November 2026. Code licences and
+# weight licences often differ; the weights' licence is what matters for us.
+
+models:
+  # ---------------- Text-to-video ----------------
+  - id: wan2.1-t2v-1.3b
+    task: text_to_video
+    source: https://huggingface.co/Wan-AI/Wan2.1-T2V-1.3B
+    license: Apache-2.0
+    commercial_ok: yes
+    trainer: musubi-tuner
+    trainer_task: t2v-1.3B
+    min_vram_gb: 16
+    notes: Small and cheap. Use it to test the training pipeline before the 14B models.
+
+  - id: wan2.1-t2v-14b
+    task: text_to_video
+    source: https://huggingface.co/Wan-AI/Wan2.1-T2V-14B
+    license: Apache-2.0
+    commercial_ok: yes
+    trainer: musubi-tuner
+    trainer_task: t2v-14B
+    min_vram_gb: 24
+    notes: About 24 GB with fp8 and block swap per musubi-tuner docs; 48-80 GB is more comfortable.
+
+  - id: wan2.2-t2v-a14b
+    task: text_to_video
+    source: https://huggingface.co/Wan-AI/Wan2.2-T2V-A14B
+    license: Apache-2.0
+    commercial_ok: yes
+    trainer: musubi-tuner
+    trainer_task: t2v-A14B
+    needs_high_noise_dit: true
+    min_vram_gb: 24
+    notes: Mixture-of-experts with separate high-noise and low-noise models. Check the task name against the pinned musubi-tuner version.
+
+  - id: ltx-video
+    task: text_to_video
+    source: https://huggingface.co/Lightricks
+    license: "LTX licence (sources conflict: Apache-2.0 vs free under $10M revenue)"
+    commercial_ok: check
+    notes: Strong for self-hosted 4K. Read the actual licence file before use.
+
+  - id: hunyuanvideo
+    task: text_to_video
+    source: https://huggingface.co/tencent/HunyuanVideo
+    license: Tencent Hunyuan community licence
+    commercial_ok: check
+    notes: Free up to 100M monthly users per sources; check territory restrictions.
+
+  - id: cogvideox-2b
+    task: text_to_video
+    source: https://huggingface.co/THUDM/CogVideoX-2b
+    license: Apache-2.0
+    commercial_ok: yes
+    notes: Older and weaker than Wan; the 5B variant has a different licence.
+
+  # ---------------- Text-to-speech (Vietnamese and English) ----------------
+  - id: melotts-vietnamese
+    task: text_to_speech
+    source: https://huggingface.co/nmcuong/MeloTTS-Vietnamese
+    license: MIT
+    commercial_ok: yes
+    trainer: melotts
+    languages: [vi]
+    notes: MIT per its model card. Multi-speaker fine-tuning is supported by MeloTTS.
+
+  - id: melotts-english
+    task: text_to_speech
+    source: https://github.com/myshell-ai/MeloTTS
+    license: MIT
+    commercial_ok: yes
+    trainer: melotts
+    languages: [en]
+    notes: Includes several English accents (US, UK, Indian, Australian).
+
+  - id: vieneu-tts-v3-turbo
+    task: text_to_speech
+    source: https://github.com/pnnbao97/VieNeu-TTS
+    license: Apache-2.0 (per third-party listing)
+    commercial_ok: check
+    trainer: vieneu
+    languages: [vi]
+    notes: Supports LoRA fine-tuning on a consumer GPU per listings. Confirm the LICENSE file; v4 is proprietary.
+
+  - id: f5-tts-vietnamese
+    task: text_to_speech
+    source: https://huggingface.co/hynt/F5-TTS-Vietnamese-ViVoice
+    license: CC-BY-NC-SA-4.0
+    commercial_ok: no
+    notes: Non-commercial research only. Do not use for the paid product.
+
+  - id: vixtts
+    task: text_to_speech
+    source: https://huggingface.co/capleaf/viXTTS
+    license: "Based on XTTS-v2 (Coqui Public Model Licence, non-commercial)"
+    commercial_ok: no
+    notes: Inherits the non-commercial base licence.
+
+  # ---------------- Voice conversion (timbre / voice type) ----------------
+  - id: openvoice-v2
+    task: voice_conversion
+    source: https://github.com/myshell-ai/OpenVoice
+    license: MIT (not re-verified in November 2026)
+    commercial_ok: check
+    notes: Zero-shot tone-colour conversion from a short reference recording.
+
+  - id: applio-rvc
+    task: voice_conversion
+    source: https://github.com/IAHispano/Applio
+    license: MIT (code and weights, per README)
+    commercial_ok: check
+    notes: Trains one voice model per speaker. README asks commercial users to contact the team.
+
+  - id: seed-vc
+    task: voice_conversion
+    source: https://github.com/Plachtaa/seed-vc
+    license: GPL-3.0 (weights, per a derivative's card)
+    commercial_ok: check
+    notes: Copyleft obligations. v2 claims voice and accent conversion; verify quality and terms.

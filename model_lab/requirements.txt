@@ -1,0 +1,9 @@
+# CPU tools (data preparation, licence and consent checks, planning, evaluation)
+numpy>=1.26
+pyyaml>=6.0
+pillow>=10.0
+pytest>=8.0
+# Optional, for word error rate in eval-audio:
+#   openai-whisper
+# Training itself runs on a GPU machine with the trainer's own requirements
+# (musubi-tuner for video, MeloTTS for speech). See docs/training-plan.md.

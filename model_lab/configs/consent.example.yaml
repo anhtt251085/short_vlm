@@ -1,0 +1,36 @@
+# Consent and rights ledger (EXAMPLE). Copy to consent.yaml and fill in real records.
+# The data tools refuse any recording or clip whose owner is missing here
+# or whose consent does not cover the intended use.
+#
+# Scopes:
+#   tts_training       - recordings may be used to train speech models
+#   voice_conversion   - the voice may be used as a conversion target
+#   video_training     - clips may be used to train video models
+#   commercial_use     - outputs may be used in a paid product
+
+speakers:
+  - id: spk_north_m01
+    accent: vi-north
+    voice_types: [presenter-male-warm]
+    contract_ref: "VA-2026-001"      # signed voice actor contract
+    signed: 2026-11-20
+    expires: null                    # null = no expiry
+    revoked: false
+    scopes: [tts_training, voice_conversion, commercial_use]
+
+  - id: spk_south_f01
+    accent: vi-south
+    voice_types: [presenter-female-bright]
+    contract_ref: "VA-2026-002"
+    signed: 2026-11-21
+    expires: 2028-11-21
+    revoked: false
+    scopes: [tts_training, commercial_use]
+
+assets:
+  - id: presenter_renders
+    kind: video
+    source: own_render              # our own 3D or SVG presenter renders
+    contract_ref: null
+    revoked: false
+    scopes: [video_training, commercial_use]

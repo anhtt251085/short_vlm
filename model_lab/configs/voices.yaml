@@ -1,0 +1,58 @@
+# Voice bank plan: which accents and voice types we offer, and how each is made.
+#
+# Accent is learned by the speech model from recordings of real speakers of that accent.
+# Voice type (timbre: warm, bright, older, younger) can come from a speaker's own recordings
+# or from voice conversion applied on top of speech in the right accent.
+# Voice conversion changes who it sounds like; it does not change the accent.
+
+accents:
+  vi-north:   {language: vi, dialect: north, label: "Northern Vietnamese (Hà Nội)"}
+  vi-central: {language: vi, dialect: north, label: "Central Vietnamese (Huế, Đà Nẵng)"}
+  vi-south:   {language: vi, dialect: south, label: "Southern Vietnamese (Sài Gòn)"}
+  en-us:      {language: en, label: "American English"}
+  en-gb:      {language: en, label: "British English"}
+
+voice_types:
+  presenter-male-warm:    {label: "Male presenter, warm and calm"}
+  presenter-female-bright: {label: "Female presenter, bright and friendly"}
+  mentor-older-calm:      {label: "Older mentor, slow and calm"}
+  young-energetic:        {label: "Young adult, energetic"}
+  cartoon-character:      {label: "Cartoon character voice, performed by an adult actor"}
+
+methods:
+  tts_speaker:
+    description: Fine-tune the speech model on this speaker's recordings in this accent.
+    min_minutes: 60      # starting target per speaker; adjust after the pilot
+  vc_timbre:
+    description: Speech in the right accent, then voice conversion to this timbre.
+    min_minutes: 10      # reference audio from a consenting voice actor
+
+# The voice matrix: for each accent, which voice types we plan and how.
+plan:
+  vi-north:
+    presenter-male-warm: tts_speaker
+    presenter-female-bright: tts_speaker
+    mentor-older-calm: vc_timbre
+    young-energetic: vc_timbre
+    cartoon-character: tts_speaker
+  vi-south:
+    presenter-male-warm: tts_speaker
+    presenter-female-bright: tts_speaker
+    mentor-older-calm: vc_timbre
+    young-energetic: vc_timbre
+    cartoon-character: tts_speaker
+  vi-central:
+    presenter-male-warm: tts_speaker
+    presenter-female-bright: vc_timbre
+  en-us:
+    presenter-male-warm: tts_speaker
+    presenter-female-bright: tts_speaker
+  en-gb:
+    presenter-female-bright: tts_speaker
+
+# Rules that apply to every voice
+rules:
+  - Every speaker must have signed consent covering training, voice conversion, and commercial use.
+  - No recordings of minors. Child-like character voices are performed by adult actors.
+  - No cloning of real people (celebrities, public figures) or anyone without consent.
+  - Generated audio carries the AI disclosure in the post text.

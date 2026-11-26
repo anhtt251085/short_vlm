@@ -18,7 +18,7 @@ client = TestClient(app)
 
 def test_template_brief_en_has_beats_and_cta():
     b = brief_agent.template_brief(ProjectIn(product_name="Bamboo stand", description="Foldable. Sturdy.", language="en"))
-    assert b.hook.startswith("Meet")
+    assert b.hook == "Want to start a business?"
     assert len(b.beats) >= 3
     assert b.cta
 
