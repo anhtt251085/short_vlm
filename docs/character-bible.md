@@ -45,6 +45,7 @@ Each character adds one or two details so viewers can tell them apart instantly,
   - `fox_mouths.webp`: eight mouth shapes for talking. Six are usable; the F/V and L/T frames came out as smiles
   - `fox_mouths_fix_a.webp`, `fox_mouths_fix_b.webp`: retries. The F/V shape (left frame, top teeth resting on the lower lip) is usable; use fix_a. The L shape did not work in either retry (the tongue stays low). L is an optional extended shape in common lip-sync tools, so we use the slightly-open shape for L, T, D, and N. Both retries have the eyes looking sideways, which reads as a side-eye; the 3D model's talking set must keep the eyes on the camera
   - `fox_expressions.webp`: calm smile, excited, surprised, thinking, concerned, proud
+  - `fox_turnaround_final.webp` and `fox_talking_final.webp`: **the official references.** Turnaround with the rounder official face, and an 8-shape talking set with the eyes on the camera in every frame. These supersede the earlier turnaround and mouth sheets
 - **Face to standardise:** the turnaround face is slightly narrower and older-looking than the rounder face in the mouth and expression sheets. Use the rounder face as the canonical one, and ask the 3D artist to match it
 - **Rules:** foxes are often seen as sly, so this fox is always open and honest. No smirks or side-eyes, and never "trick the customer" stories. Keep it clearly different from well-known film foxes: no green shirts or loose ties
 
