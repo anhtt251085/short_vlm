@@ -39,6 +39,12 @@ Each character adds one or two details so viewers can tell them apart instantly,
 - **Look:** red fox, taller and slimmer (about 1 head to 3 body height); orange fur (about #EA7930) with cream muzzle, ear insides, and tail tip (about #EAD2CC); big bushy tail
 - **Distinct details:** grey waistcoat (about #7C6660), red pocket square, dark brown rounded-rectangle glasses
 - **Topics:** content marketing, selling online, pricing, building a brand, social media
+- **References** (in `assets/character/concepts/`):
+  - `fox.webp`: the six story poses
+  - `fox_turnaround.webp`: front, three-quarter, side, and back views
+  - `fox_mouths.webp`: eight mouth shapes for talking. Six are usable; the F/V (lower lip under teeth) and L/T (tongue behind teeth) frames came out as smiles and need regenerating
+  - `fox_expressions.webp`: calm smile, excited, surprised, thinking, concerned, proud
+- **Face to standardise:** the turnaround face is slightly narrower and older-looking than the rounder face in the mouth and expression sheets. Use the rounder face as the canonical one, and ask the 3D artist to match it
 - **Rules:** foxes are often seen as sly, so this fox is always open and honest. No smirks or side-eyes, and never "trick the customer" stories. Keep it clearly different from well-known film foxes: no green shirts or loose ties
 
 ### 3.2 Owl — Education and learning skills
